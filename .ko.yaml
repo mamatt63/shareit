@@ -2,3 +2,7 @@
 builds:
 - id: shareit
   main: ./app
+  ldflags:
+    # Remove symbols and debug information
+    # see https://pkg.go.dev/cmd/link
+    - -s -w
