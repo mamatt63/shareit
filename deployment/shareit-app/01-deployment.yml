@@ -27,7 +27,17 @@ spec:
           - name: PUBLIC_URL
             value: https://$SHAREIT_DEPLOYMENT_FQDN
           - name: BLOB_STORAGE_URL
-            value: mem://
+            value: $SHAREIT_BLOB_URL
+          - name: AWS_ACCESS_KEY_ID
+            valueFrom:
+              secretKeyRef:
+                name: shareit-secret
+                key: aws_access_key_id
+          - name: AWS_SECRET_ACCESS_KEY
+            valueFrom:
+              secretKeyRef:
+                name: shareit-secret
+                key: aws_secret_access_key
         livenessProbe:
           httpGet:
             path: /healthz

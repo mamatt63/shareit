@@ -2,7 +2,7 @@ name: shareit
 
 on:
   push:
-    branches: ['main']
+    branches: ['main', 'stage/*']
 
 jobs:
   build:
@@ -49,6 +49,10 @@ jobs:
       url: ${{ vars.SHAREIT_URL }}
     runs-on: ubuntu-latest
     steps:
+      - name: retrieve environment name
+        uses: qoomon/actions--context@v2
+        id: context
+
       - name: dump context
         uses: crazy-max/ghaction-dump-context@v2
 
@@ -72,6 +76,9 @@ jobs:
           SHAREIT_CONTAINER_IMAGE_URL: ${{ vars.DIGITALOCEAN_REGISTRY_FQDN }}/${{ vars.CLOCKWORK_REGISTRY_NAME }}/shareit/app
           SHAREIT_CONTAINER_IMAGE_VERSION: ${{ needs.build.outputs.shareit_image_tag }}
           SHAREIT_DEPLOYMENT_VERSION: ${{ github.sha }}
+          SHAREIT_BLOB_URL: s3://do-interview?endpoint=https://ams3.digitaloceanspaces.com&disableSSL=true&s3ForcePathStyle=true&region=ams3&prefix=${{ steps.context.outputs.environment }}/
+          SHAREIT_BLOB_ACCESS_KEY_ID: ${{ secrets.SHAREIT_BLOB_ACCESS_KEY_ID }}
+          SHAREIT_BLOB_SECRET_ACCESS_KEY: ${{ secrets.SHAREIT_BLOB_SECRET_ACCESS_KEY }}
 
       - name: dump application manifest
         run: |
