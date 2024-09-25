@@ -6,7 +6,8 @@ on:
 
 jobs:
   build:
-    environment: dev01
+    environment:
+      name: build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4.1.7
@@ -30,3 +31,57 @@ jobs:
 
       - name: build and push
         run: ko build --platform=linux/amd64 ./app
+
+  deploy:
+    needs: build
+    environment:
+      name: dev01
+      url: ${{ vars.SHAREIT_URL }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: dump context
+        uses: crazy-max/ghaction-dump-context@v2
+
+      - uses: actions/checkout@v4.1.7
+
+      - name: retrieve environment context variables
+        uses: qoomon/actions--context@v1
+        id: context
+
+      - name: setup kubeconfig file
+        uses: actions-hub/kubectl@v1.31.1
+        env:
+          KUBE_CONFIG: ${{ secrets.KUBE_CONFIG }}
+
+      - name: dump current namespace content
+        uses: actions-hub/kubectl@v1.31.1
+        with:
+          args: get all
+
+      - name: generate manifests
+        run: |
+          envsubst < <(cat deployment/shareit-app/*.yml) > shareit-deploy.yml
+        env:
+          SHAREIT_ENVIRONMENT: ${{ steps.context.outputs.environment.name }}
+          SHAREIT_INSTANCE_NAME: shareit-${{ steps.context.outputs.environment.name }}
+          SHAREIT_DEPLOYMENT_FQDN: ${{ vars.SHAREIT_FQDN }}
+          SHAREIT_CONTAINER_IMAGE_URL: ${{ vars.DIGITALOCEAN_REGISTRY_FQDN }}/${{ vars.CLOCKWORK_REGISTRY_NAME }}/app-dcfd7b6b231ec52a0c82ec0af3c8fc99
+          SHAREIT_CONTAINER_IMAGE_VERSION: latest
+
+      - name: kubectl delete previous deployment
+        uses: actions-hub/kubectl@v1.31.1
+        with:
+          args: delete all --all --wait=true
+
+      - name: kubectl apply
+        uses: actions-hub/kubectl@v1.31.1
+        with:
+          args: apply -f shareit-deploy.yml
+
+      - name: wait for 30s to get HTTP 200
+        uses: nev7n/wait_for_response@v1
+        with:
+          url: https://${{ vars.SHAREIT_FQDN }}
+          responseCode: 200
+          timeout: 30000
+          interval: 500

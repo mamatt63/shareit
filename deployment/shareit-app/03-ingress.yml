@@ -1,0 +1,21 @@
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: shareit-ingress
+  annotations:
+    kubernetes.io/ingress.class: caddy
+  labels:
+    app.kubernetes.io/name: shareit-app
+spec:
+  rules:
+    - host: $SHAREIT_DEPLOYMENT_FQDN
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: shareit-svc
+                port:
+                  number: 80

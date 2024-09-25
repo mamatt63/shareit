@@ -1,0 +1,45 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: shareit-deployment
+  labels:
+    app.kubernetes.io/name: shareit-app
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: shareit-app
+      app.kubernetes.io/version: "$SHAREIT_CONTAINER_IMAGE_VERSION"
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: shareit-app
+        app.kubernetes.io/version: "$SHAREIT_CONTAINER_IMAGE_VERSION"
+    spec:
+      containers:
+      - name: app
+        image: $SHAREIT_CONTAINER_IMAGE_URL:$SHAREIT_CONTAINER_IMAGE_VERSION
+        imagePullPolicy: Always
+        ports:
+          - containerPort: 8080
+        env:
+          - name: PUBLIC_URL
+            value: https://$SHAREIT_INSTANCE_NAME.do-interview.cw.substance3d.io
+          - name: BLOB_STORAGE_URL
+            value: mem://
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8080
+            scheme: HTTP
+          initialDelaySeconds: 5
+          periodSeconds: 15
+          timeoutSeconds: 5
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 8080
+            scheme: HTTP
+          initialDelaySeconds: 5
+          timeoutSeconds: 1
