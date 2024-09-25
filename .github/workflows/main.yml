@@ -1,0 +1,32 @@
+name: shareit
+
+on:
+  push:
+    branches: ['main']
+
+jobs:
+  build:
+    environment: dev01
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4.1.7
+
+      - uses: actions/setup-go@v5.0.2
+        with:
+          go-version: '1.23.1'
+
+      - uses: ko-build/setup-ko@v0.6
+        with:
+          version: v0.16.0
+        env:
+          KO_DOCKER_REPO: ${{ vars.DIGITALOCEAN_REGISTRY_FQDN }}/${{ vars.CLOCKWORK_REGISTRY_NAME }}
+
+      - name: registry login
+        env:
+          CLOCKWORK_REGISTRY_RW_TOKEN: ${{ secrets.CLOCKWORK_REGISTRY_RW_TOKEN }}
+        run: |
+          echo "${CLOCKWORK_REGISTRY_RW_TOKEN}" |
+          ko login ${{ vars.DIGITALOCEAN_REGISTRY_FQDN }} --username ${{ vars.CLOCKWORK_REGISTRY_USERNAME }} --password-stdin
+
+      - name: build and push
+        run: ko build --platform=linux/amd64 ./app

@@ -1,0 +1,4 @@
+---
+builds:
+- id: shareit
+  main: ./app
