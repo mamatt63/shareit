@@ -5,6 +5,7 @@ metadata:
   name: shareit-svc
   labels:
     app.kubernetes.io/name: shareit-app
+    app.kubernetes.io/version: $SHAREIT_DEPLOYMENT_VERSION
 spec:
   ports:
     - name: http

@@ -9,6 +9,8 @@ jobs:
     environment:
       name: build
     runs-on: ubuntu-latest
+    outputs:
+      shareit_image_tag: ${{ steps.build_vars.outputs.SHAREIT_IMAGE_TAG }}
     steps:
       - uses: actions/checkout@v4.1.7
 
@@ -20,7 +22,15 @@ jobs:
         with:
           version: v0.16.0
         env:
-          KO_DOCKER_REPO: ${{ vars.DIGITALOCEAN_REGISTRY_FQDN }}/${{ vars.CLOCKWORK_REGISTRY_NAME }}
+          KO_DOCKER_REPO: ${{ vars.DIGITALOCEAN_REGISTRY_FQDN }}/${{ vars.CLOCKWORK_REGISTRY_NAME }}/shareit
+
+      - name: generate build variables
+        run: |
+          GIT_SHORT_SHA1=$(git rev-parse --short=8 ${{ github.sha }})
+          echo "GIT_SHORT_SHA1=$GIT_SHORT_SHA1" >> $GITHUB_OUTPUT
+          echo "SHAREIT_IMAGE_TAG=${GIT_SHORT_SHA1}-amd64" >> $GITHUB_OUTPUT
+          echo "SHAREIT_IMAGE_TAG=${GIT_SHORT_SHA1}-amd64" >> $GITHUB_ENV
+        id: build_vars
 
       - name: registry login
         env:
@@ -30,7 +40,7 @@ jobs:
           ko login ${{ vars.DIGITALOCEAN_REGISTRY_FQDN }} --username ${{ vars.CLOCKWORK_REGISTRY_USERNAME }} --password-stdin
 
       - name: build and push
-        run: ko build --platform=linux/amd64 ./app
+        run: ko build --base-import-paths --image-refs metadata.txt --platform=linux/amd64 --tags ${{ env.SHAREIT_IMAGE_TAG }} --push ./app
 
   deploy:
     needs: build
@@ -43,10 +53,6 @@ jobs:
         uses: crazy-max/ghaction-dump-context@v2
 
       - uses: actions/checkout@v4.1.7
-
-      - name: retrieve environment context variables
-        uses: qoomon/actions--context@v1
-        id: context
 
       - name: setup kubeconfig file
         uses: actions-hub/kubectl@v1.31.1
@@ -62,11 +68,14 @@ jobs:
         run: |
           envsubst < <(cat deployment/shareit-app/*.yml) > shareit-deploy.yml
         env:
-          SHAREIT_ENVIRONMENT: ${{ steps.context.outputs.environment.name }}
-          SHAREIT_INSTANCE_NAME: shareit-${{ steps.context.outputs.environment.name }}
           SHAREIT_DEPLOYMENT_FQDN: ${{ vars.SHAREIT_FQDN }}
-          SHAREIT_CONTAINER_IMAGE_URL: ${{ vars.DIGITALOCEAN_REGISTRY_FQDN }}/${{ vars.CLOCKWORK_REGISTRY_NAME }}/app-dcfd7b6b231ec52a0c82ec0af3c8fc99
-          SHAREIT_CONTAINER_IMAGE_VERSION: latest
+          SHAREIT_CONTAINER_IMAGE_URL: ${{ vars.DIGITALOCEAN_REGISTRY_FQDN }}/${{ vars.CLOCKWORK_REGISTRY_NAME }}/shareit/app
+          SHAREIT_CONTAINER_IMAGE_VERSION: ${{ needs.build.outputs.shareit_image_tag }}
+          SHAREIT_DEPLOYMENT_VERSION: ${{ github.sha }}
+
+      - name: dump application manifest
+        run: |
+          cat shareit-deploy.yml
 
       - name: kubectl delete previous deployment
         uses: actions-hub/kubectl@v1.31.1

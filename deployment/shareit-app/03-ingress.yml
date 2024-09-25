@@ -7,6 +7,7 @@ metadata:
     kubernetes.io/ingress.class: caddy
   labels:
     app.kubernetes.io/name: shareit-app
+    app.kubernetes.io/version: $SHAREIT_DEPLOYMENT_VERSION
 spec:
   rules:
     - host: $SHAREIT_DEPLOYMENT_FQDN

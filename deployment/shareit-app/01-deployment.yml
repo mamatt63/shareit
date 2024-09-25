@@ -10,22 +10,22 @@ spec:
   selector:
     matchLabels:
       app.kubernetes.io/name: shareit-app
-      app.kubernetes.io/version: "$SHAREIT_CONTAINER_IMAGE_VERSION"
+      app.kubernetes.io/version: $SHAREIT_DEPLOYMENT_VERSION
   template:
     metadata:
       labels:
         app.kubernetes.io/name: shareit-app
-        app.kubernetes.io/version: "$SHAREIT_CONTAINER_IMAGE_VERSION"
+        app.kubernetes.io/version: $SHAREIT_DEPLOYMENT_VERSION
     spec:
       containers:
       - name: app
-        image: $SHAREIT_CONTAINER_IMAGE_URL:$SHAREIT_CONTAINER_IMAGE_VERSION
+        image: ${SHAREIT_CONTAINER_IMAGE_URL}:${SHAREIT_CONTAINER_IMAGE_VERSION}
         imagePullPolicy: Always
         ports:
           - containerPort: 8080
         env:
           - name: PUBLIC_URL
-            value: https://$SHAREIT_INSTANCE_NAME.do-interview.cw.substance3d.io
+            value: https://$SHAREIT_DEPLOYMENT_FQDN
           - name: BLOB_STORAGE_URL
             value: mem://
         livenessProbe:
